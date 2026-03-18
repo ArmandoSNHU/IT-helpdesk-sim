@@ -1,14 +1,21 @@
 import { useState } from "react";
 import { WORKERS, PRIORITY_META, STATUS_META, CATEGORY_ICONS } from "../data/workers";
 import { createTicket } from "../data/ticketModel";
+import TicketDetail from "./TicketDetail";
 
 export default function Dashboard() {
   const [tickets, setTickets] = useState([]);
   const [filter, setFilter] = useState("All");
+  const [selected, setSelected] = useState(null);
 
   function spawnTicket(worker) {
     const ticket = createTicket(worker);
     setTickets((prev) => [ticket, ...prev]);
+  }
+
+  function updateTicket(updated) {
+    setTickets(prev => prev.map(t => t.id === updated.id ? updated : t));
+    setSelected(updated);
   }
 
   const filtered = filter === "All"
@@ -21,6 +28,16 @@ export default function Dashboard() {
     "In Progress": tickets.filter((t) => t.status === "In Progress").length,
     Resolved: tickets.filter((t) => t.status === "Resolved").length,
   };
+
+  if (selected) {
+    return (
+      <TicketDetail
+        ticket={selected}
+        onBack={() => setSelected(null)}
+        onUpdate={updateTicket}
+      />
+    );
+  }
 
   return (
     <div style={{
@@ -190,18 +207,20 @@ export default function Dashboard() {
             </div>
           ) : (
             filtered.map((ticket) => (
-              <div key={ticket.id} style={{
-                display: "grid",
-                gridTemplateColumns: "100px 1fr 100px 90px 90px",
-                padding: "0.875rem 1rem",
-                background: "#0f1117",
-                border: "1px solid #1e2433",
-                borderRadius: 8, marginBottom: "0.5rem",
-                alignItems: "center",
-                cursor: "pointer",
-                transition: "border-color 0.15s",
-              }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = "#334155"}
+              <div key={ticket.id}
+                onClick={() => setSelected(ticket)}
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "100px 1fr 100px 90px 90px",
+                  padding: "0.875rem 1rem",
+                  background: "#0f1117",
+                  border: "1px solid #1e2433",
+                  borderRadius: 8, marginBottom: "0.5rem",
+                  alignItems: "center",
+                  cursor: "pointer",
+                  transition: "border-color 0.15s",
+                }}
+                onMouseEnter={e => e.currentTarget.style.borderColor = "#818cf8"}
                 onMouseLeave={e => e.currentTarget.style.borderColor = "#1e2433"}
               >
                 <span style={{
