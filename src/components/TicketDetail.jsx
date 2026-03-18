@@ -12,12 +12,12 @@ export default function TicketDetail({ ticket, onBack, onUpdate }) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-    "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
-    "anthropic-version": "2023-06-01",
-    "anthropic-dangerous-direct-browser-access": "true",
-  },
+          "x-api-key": import.meta.env.VITE_ANTHROPIC_API_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true",
+        },
         body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
+          model: "claude-haiku-4-5-20251001",
           max_tokens: 1000,
           system: `You are a senior IT helpdesk engineer. Return ONLY a JSON array, no markdown, no explanation.
 Each object: {"step":number,"title":"string","action":"string","verify":"string","isCheckpoint":boolean}
@@ -30,10 +30,16 @@ For Database/SQL tickets include specific SQL diagnostic queries in the action f
         })
       });
       const data = await res.json();
+      console.log("API Response:", JSON.stringify(data, null, 2));
+      if (data.error) {
+        console.error("API Error:", data.error);
+        throw new Error(data.error.message);
+      }
       const text = data.content?.find(b => b.type === "text")?.text || "[]";
       const steps = JSON.parse(text.replace(/```json|```/g, "").trim());
       onUpdate({ ...ticket, steps, status: "In Progress", currentStep: 0 });
-    } catch {
+    } catch (err) {
+      console.error("loadSteps error:", err);
       onUpdate({
         ...ticket,
         status: "In Progress",
@@ -64,7 +70,6 @@ For Database/SQL tickets include specific SQL diagnostic queries in the action f
 
   const pm = PRIORITY_META[ticket.priority];
   const sm = STATUS_META[ticket.status];
-  const currentStep = ticket.steps[ticket.currentStep];
 
   return (
     <div style={{
@@ -90,7 +95,9 @@ For Database/SQL tickets include specific SQL diagnostic queries in the action f
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
-              <span style={{ fontSize: 11, color: "#334155", fontFamily: "monospace" }}>{ticket.id}</span>
+              <span style={{ fontSize: 11, color: "#334155", fontFamily: "monospace" }}>
+                {ticket.id}
+              </span>
               <span style={{
                 padding: "1px 7px", borderRadius: 4,
                 background: "rgba(100,116,139,0.1)", color: "#64748b", fontSize: 11
@@ -155,7 +162,7 @@ For Database/SQL tickets include specific SQL diagnostic queries in the action f
               border: "none", cursor: loading ? "not-allowed" : "pointer",
               fontSize: "0.8rem", fontWeight: 600
             }}>
-              {loading ? "Loading AI Steps..." : "⚡ Get AI Steps"}
+              {loading ? "⏳ Generating..." : "⚡ Get AI Steps"}
             </button>
           )}
         </div>
@@ -191,7 +198,8 @@ For Database/SQL tickets include specific SQL diagnostic queries in the action f
                 {isDone ? "✓" : step.step}
               </div>
               <div style={{
-                flex: 1, background: isCurrent ? "rgba(129,140,248,0.05)" : "transparent",
+                flex: 1,
+                background: isCurrent ? "rgba(129,140,248,0.05)" : "transparent",
                 border: isCurrent ? "1px solid #818cf822" : "1px solid transparent",
                 borderRadius: 8, padding: isCurrent ? "0.75rem" : "0.25rem 0"
               }}>
